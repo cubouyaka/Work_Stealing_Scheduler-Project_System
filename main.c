@@ -1,6 +1,9 @@
 #include "sched.h"
 
-int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
+int main(){
+
+  int nthreads = 3;
+
   if(nthreads == 0)
     nthreads = sched_default_threads();
 
@@ -10,15 +13,6 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
     fprintf(stderr,"Error while creating scheduler [sched_init]\n");
     return -1;
   }
-
-  scheduler->nthreads = nthreads;
-  scheduler->qlen = qlen;
-
-
-  return 0;
-}
-
-int sched_spawn(taskfunc f, void *closure, struct scheduler *s){
 
   return 0;
 }
