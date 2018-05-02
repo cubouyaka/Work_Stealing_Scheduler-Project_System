@@ -1,4 +1,4 @@
-FLAGS = -Wall
+FLAGS = -Wall -lpthread
 SRCS = $(wildcard *.c)
 OBJS = ${SRCS:.cpp=.o}
 
