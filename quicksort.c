@@ -38,7 +38,8 @@ struct quicksort_args {
 struct quicksort_args *
 new_args(int *a, int lo, int hi)
 {
-    struct quicksort_args *args = malloc(sizeof(struct quicksort_args));
+  struct quicksort_args *args = 
+    (struct quicksort_args *) malloc(sizeof(struct quicksort_args));
     if(args == NULL)
         return NULL;
 
@@ -89,7 +90,7 @@ quicksort(void *closure, struct scheduler *s)
 }
 
 int
-main(int argc, char **argv)
+main_quicksort(int argc, char **argv)
 {
     int *a;
     struct timespec begin, end;
@@ -122,7 +123,7 @@ main(int argc, char **argv)
         }
     }
 
-    a = malloc(n * sizeof(int));
+    a = (int *) malloc(n * sizeof(int));
     for(int i = 0; i < n; i++) {
         if(i % 2 == 0)
             a[i] = i;
