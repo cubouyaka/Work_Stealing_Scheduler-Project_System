@@ -2,9 +2,14 @@ struct scheduler;
 
 typedef void (*taskfunc)(void*, struct scheduler *);
 
-static inline int
-sched_default_threads()
-{
+
+struct scheduler {
+  int nthreads; //nombre de threads
+  int qlen; //nombres minimum de taches simultanees
+  //la tache intiales (f,p) qui va creer d'autres taches
+};
+
+static inline int sched_default_threads(){
     return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
