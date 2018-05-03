@@ -140,9 +140,9 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
         fprintf(stderr,"sleep  init %d \n",scheduler->nbre_th_sleep);
         fprintf(stderr,"taille init %d \n",tailleLifo(scheduler->lifo));
         //retourner lorsque tous les thread sont endormi et la pile vide.
-        while((tailleLifo(scheduler->lifo)!=0) || (scheduler->nbre_th_sleep== nthreads)){
-            fprintf(stderr,"taille %d \n",tailleLifo(scheduler->lifo));
-            fprintf(stderr,"sleep  init %d \n",scheduler->nbre_th_sleep);
+        while((tailleLifo(scheduler->lifo)!=0) || (scheduler->nbre_th_sleep != scheduler->nthreads)){
+            fprintf(stderr,"taille %d  ",tailleLifo(scheduler->lifo));
+            fprintf(stderr,"sleep %d  nthreads %d\n",scheduler->nbre_th_sleep ,scheduler->nthreads);
         }
         pthread_mutex_unlock (& scheduler->mutex);
           free(scheduler->lifo->dernier);
