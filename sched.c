@@ -53,19 +53,42 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   empiler(scheduler->lifo,f,closure);
 
   //Execution de la pile tant qu'il y a des taches a faire
-  struct Element * e = (struct Element *) malloc(sizeof(struct Element)); 
+  //Termine lorsque la pile est vide ET tous les threads sont endormis
+  struct Element * e = (struct Element *) malloc(sizeof(struct Element));
+  int nb_threads_actuel = 0;
   while(scheduler->lifo->dernier != NULL){
     e = depiler(scheduler->lifo);
-    e->t(e->closure,scheduler);
+    //e->t(e->closure,scheduler);
+    if(nb_threads_actuel < nthreads){
+      /*
+      struct arguments* arg =(struct arguments*)malloc(sizeof(struct arguments));
+      arg->t = e->t;
+      arg->closure = e->closure;
+      arg->scheduler = scheduler;
+      if(pthread_create(&scheduler->threads[nb_threads_actuel],NULL,&thread_start,&arg) != 0){
+	fprintf(stderr,"Erreur lors du pthread_create pour le %d eme thread\n",
+		nb_threads_actuel);
+      }else{
+	nb_threads_actuel ++;
+      }
+      */
+    }
   }
 
   return 0;
 }
+
+/*
+static void * thread_start(void *arg){
+  arg->t(arg->closure,arg->scheduler);
+}
+*/
+
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s){
 
   //Si le nombre de tâches en file est supérieur ou égal à la capacité de l’ordonnanceur
   if(tailleLifo(s->lifo) >= s->qlen){
-    fprintf(stderr,"Error EAGAIN (lifo plein)\n");
+    errno = EAGAIN;
     return -1;
   }
 

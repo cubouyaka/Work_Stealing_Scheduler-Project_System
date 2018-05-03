@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <errno.h>
 
 typedef void (*taskfunc)(void*, struct scheduler *);
 
@@ -20,9 +21,16 @@ static inline int sched_default_threads(){
     return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
+/*
+struct arguments {
+  taskfunc t;
+  void * closure;
+  struct scheduler * scheduler;
+};
+*/
+
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure);
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s);
-
 
 typedef struct Element {
   taskfunc t;
