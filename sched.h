@@ -2,8 +2,6 @@
 #ifndef SCHED_H
 #define SCHED_H
 
-//#include "lifo.h"
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,10 +34,11 @@ typedef struct Lifo {
   Element * dernier;
 } Lifo;
 
+//Empile la taskfunc f dans la pile d'execution
 void empiler(struct Lifo * lifo, taskfunc f, void *closure);
-
+//Depile un element de la pile d'execution
 Element* depiler(struct Lifo * lifo);
-
+//Renvoi le nombre d'elements dans la pile d'execution 
 int tailleLifo(struct Lifo * lifo);
 
 #endif

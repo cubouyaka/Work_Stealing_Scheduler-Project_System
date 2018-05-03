@@ -1,7 +1,5 @@
 #include "sched.h"
 
-
-
 void empiler(struct Lifo * lifo, taskfunc f, void * closure){
   struct Element * e = (Element *) malloc(sizeof(struct Element));
   if (lifo == NULL || e == NULL)
@@ -45,32 +43,38 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   scheduler->nthreads = nthreads;
   scheduler->qlen = qlen;
 
-  //Creations des threads
+  //Allocation de memoire pour les threads
   scheduler->threads=(pthread_t *)malloc(scheduler->nthreads*sizeof(pthread_t));
 
   //Creation de la pile d'execution (lifo)
   scheduler->lifo = (struct Lifo *) malloc(sizeof(struct Lifo));
 
-  //Empilation de la tache initiale sur la pile
+  //Empilement de la tache initiale sur la pile
   empiler(scheduler->lifo,f,closure);
+
+  //Execution de la pile tant qu'il y a des taches a faire
+  struct Element * e = (struct Element *) malloc(sizeof(struct Element)); 
+  while(scheduler->lifo->dernier != NULL){
+    e = depiler(scheduler->lifo);
+    e->t(e->closure,scheduler);
+  }
 
   return 0;
 }
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s){
 
-  //Si le nombre de tâches en file est déjà supérieur ou égal à la capacité de l’ordonnanceur
-  //(lavaleur du paramètre qlen passé à sched_init )
+  //Si le nombre de tâches en file est supérieur ou égal à la capacité de l’ordonnanceur
   if(tailleLifo(s->lifo) >= s->qlen){
     fprintf(stderr,"Error EAGAIN (lifo plein)\n");
     return -1;
-  }else{
-      // empiler la nouvelle tache
-      //lock à faire
-      empiler(s->lifo,f,closure);
+  }
 
-      //signal à faire pour reveiller les threads qui dorment
-      //unlock à faire
+  //lock à faire
+  // empiler la nouvelle tache
+  empiler(s->lifo,f,closure);
 
-      return 0;
-    }
+  //signal à faire pour reveiller les threads qui dorment
+  //unlock à faire
+
+  return 0;
 }
