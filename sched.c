@@ -13,13 +13,13 @@ void empiler(struct Lifo * lifo, taskfunc f, void * closure){
 }
 
 Element *depiler(struct Lifo * lifo){
-    if (lifo == NULL)
-      exit(EXIT_FAILURE);
+  if (lifo == NULL)
+    exit(EXIT_FAILURE);
 
-    Element * e = lifo->dernier; //l'element a retourner
-    lifo->dernier = e->prec; //depiler l'element e
+  Element * e = lifo->dernier; //l'element a retourner
+  lifo->dernier = e->prec; //depiler l'element e
 
-    return e;
+  return e;
 }
 
 int tailleLifo(struct Lifo * lifo){
@@ -42,12 +42,11 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
     fprintf(stderr,"Error while creating scheduler [sched_init]\n");
     return -1;
   }
-
   scheduler->nthreads = nthreads;
   scheduler->qlen = qlen;
 
   //Creations des threads
-  scheduler->threads=(pthread_t *)malloc(scheduler->nthreads *sizeof(pthread_t));
+  scheduler->threads=(pthread_t *)malloc(scheduler->nthreads*sizeof(pthread_t));
 
   //Creation de la pile d'execution (lifo)
   scheduler->lifo = (struct Lifo *) malloc(sizeof(struct Lifo));
@@ -59,21 +58,19 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
 }
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s){
 
-      //Si le nombre de tâches en file est déjà supérieur ou égal à la capacité de l’ordonnanceur
-      //(lavaleur du paramètre qlen passé à sched_init )
-      if(tailleLifo(s->lifo) >= s->qlen){
-        fprintf(stderr,"Error EAGAIN (lifo plein)\n");
-        return -1;
-      }
-      else
-      {
-        // empiler la nouvelle tache
-        //lock à faire
-        empiler(s->lifo,f,closure);
+  //Si le nombre de tâches en file est déjà supérieur ou égal à la capacité de l’ordonnanceur
+  //(lavaleur du paramètre qlen passé à sched_init )
+  if(tailleLifo(s->lifo) >= s->qlen){
+    fprintf(stderr,"Error EAGAIN (lifo plein)\n");
+    return -1;
+  }else{
+      // empiler la nouvelle tache
+      //lock à faire
+      empiler(s->lifo,f,closure);
 
-        //signal à faire pour reveiller les threads qui dorment
-        //unlock à faire
+      //signal à faire pour reveiller les threads qui dorment
+      //unlock à faire
 
-  return 0;
-}
+      return 0;
+    }
 }
