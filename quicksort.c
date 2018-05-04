@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <assert.h>
-#include "sched.h"
+#include "sched.c"
 
 int
 partition(int *a, int lo, int hi)
@@ -38,7 +38,7 @@ struct quicksort_args {
 struct quicksort_args *
 new_args(int *a, int lo, int hi)
 {
-  struct quicksort_args *args = 
+  struct quicksort_args *args =
     (struct quicksort_args *) malloc(sizeof(struct quicksort_args));
     if(args == NULL)
         return NULL;
@@ -90,7 +90,7 @@ quicksort(void *closure, struct scheduler *s)
 }
 
 int
-main_quicksort(int argc, char **argv)
+main(int argc, char **argv)
 {
     int *a;
     struct timespec begin, end;
@@ -149,7 +149,7 @@ main_quicksort(int argc, char **argv)
     for(int i = 0; i < n - 1; i++) {
         assert(a[i] <= a[i + 1]);
     }
-
+    printf("aborded \n");
     free(a);
     return 0;
 
