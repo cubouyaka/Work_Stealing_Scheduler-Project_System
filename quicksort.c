@@ -124,7 +124,8 @@ main(int argc, char **argv)
     }
 
     a = (int *) malloc(n * sizeof(int));
-    for(int i = 0; i < n; i++) {
+    int i = 0;
+    for(i = 0; i < n; i++) {
         if(i % 2 == 0)
             a[i] = i;
         else
@@ -145,8 +146,8 @@ main(int argc, char **argv)
     delay = end.tv_sec + end.tv_nsec / 1000000000.0 -
         (begin.tv_sec + begin.tv_nsec / 1000000000.0);
     printf("Done in %lf seconds.\n", delay);
-
-    for(int i = 0; i < n - 1; i++) {
+    i = 0;
+    for(i = 0; i < n - 1; i++) {
         assert(a[i] <= a[i + 1]);
     }
     printf("aborded \n");
