@@ -128,7 +128,7 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   fprintf(stderr,"coeur %d \n",nthreads);
   for (i = 0; i < scheduler->nthreads; i++)
         {
-            fprintf(stderr,"ite %d \n",i);
+            //fprintf(stderr,"ite %d \n",i);
              pth = pthread_create (&scheduler->threads[i], NULL,(void* )aux,(void * )scheduler);
              if (pth)
              {
@@ -137,15 +137,15 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
         }
 
         pthread_mutex_lock (& scheduler->mutex);
-        fprintf(stderr,"sleep  init %d \n",scheduler->nbre_th_sleep);
-        fprintf(stderr,"taille init %d \n",tailleLifo(scheduler->lifo));
+        //fprintf(stderr,"sleep  init %d \n",scheduler->nbre_th_sleep);
+        //fprintf(stderr,"taille init %d \n",tailleLifo(scheduler->lifo));
         //retourner lorsque tous les thread sont endormi et la pile vide.
         while((tailleLifo(scheduler->lifo)!=0) || (scheduler->nbre_th_sleep != scheduler->nthreads)){
-            fprintf(stderr,"taille %d  ",tailleLifo(scheduler->lifo));
-            fprintf(stderr,"sleep %d  nthreads %d\n",scheduler->nbre_th_sleep ,scheduler->nthreads);
+            //fprintf(stderr,"taille %d  ",tailleLifo(scheduler->lifo));
+            //fprintf(stderr,"sleep %d  nthreads %d\n",scheduler->nbre_th_sleep ,scheduler->nthreads);
         }
         pthread_mutex_unlock (& scheduler->mutex);
-          free(scheduler->lifo->dernier);
+          //free(scheduler->lifo->dernier);
           free(scheduler->lifo);
           free(scheduler->threads);
           free(scheduler);
