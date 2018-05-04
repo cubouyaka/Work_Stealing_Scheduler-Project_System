@@ -15,29 +15,17 @@ typedef struct scheduler {
   int qlen; //nombres minimum de taches simultanees
   pthread_t * threads ;//tableau de threads
   struct Lifo * lifo; //la pile d'execution (lifo)
-  // les mutex
+  // les mutexs
   pthread_mutex_t mutex;
-  pthread_mutex_t mutex_depiler;
-  pthread_mutex_t mutex_empiler;
   pthread_mutex_t mutex_sleep;
-  pthread_mutex_t mutex_unsleep;
-  // conditions d'arrets pour les mutex
-  pthread_cond_t cond;
-  // compteur des threads qui dorment
-  int nbre_th_sleep;
+  pthread_cond_t cond; // condition d'arret pour les mutex
+  int nbre_th_sleep; //nombre de thread qui dorment
 } scheduler;
+
 typedef void (*taskfunc)(void*, struct scheduler *);
 static inline int sched_default_threads(){
     return sysconf(_SC_NPROCESSORS_ONLN);
 }
-
-/*
-struct arguments {
-  taskfunc t;
-  void * closure;
-  struct scheduler * scheduler;
-};
-*/
 
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure);
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s);
@@ -49,14 +37,14 @@ typedef struct Element {
 } Element;
 
 typedef struct Lifo {
+  int taille; //nombre d'elements dans la pile
   Element * dernier;
+  pthread_mutex_t mutex;
 } Lifo;
 
 //Empile la taskfunc f dans la pile d'execution
 void empiler(struct Lifo * lifo, taskfunc f, void *closure);
 //Depile un element de la pile d'execution
 Element* depiler(struct Lifo * lifo);
-//Renvoi le nombre d'elements dans la pile d'execution
-int tailleLifo(struct Lifo * lifo);
 
 #endif
