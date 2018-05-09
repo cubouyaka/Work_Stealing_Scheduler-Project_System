@@ -38,7 +38,8 @@ struct quicksort_args {
 struct quicksort_args *
 new_args(int *a, int lo, int hi)
 {
-    struct quicksort_args *args = malloc(sizeof(struct quicksort_args));
+  struct quicksort_args *args =
+    (struct quicksort_args *) malloc(sizeof(struct quicksort_args));
     if(args == NULL)
         return NULL;
 
@@ -70,7 +71,7 @@ quicksort(void *closure, struct scheduler *s)
     int hi = args->hi;
     int p;
     int rc;
-printf("lo est %d et hi= %d\n",lo,hi );
+
     free(closure);
 
     if(lo >= hi)
@@ -86,7 +87,6 @@ printf("lo est %d et hi= %d\n",lo,hi );
     assert(rc >= 0);
     rc = sched_spawn(quicksort, new_args(a, p + 1, hi), s);
     assert(rc >= 0);
-
 }
 
 int
@@ -96,8 +96,8 @@ main(int argc, char **argv)
     struct timespec begin, end;
     double delay;
     int rc;
-    int n = 10*1024*1024;
-    int nthreads = 5;
+    int n = 10 * 1024 * 1024;
+    int nthreads = -1;
     int serial = 0;
 
     while(1) {
@@ -123,8 +123,9 @@ main(int argc, char **argv)
         }
     }
 
-    a = malloc(n * sizeof(int));
-    for(int i = 0; i < n; i++) {
+    a = (int *) malloc(n * sizeof(int));
+    int i = 0;
+    for(i = 0; i < n; i++) {
         if(i % 2 == 0)
             a[i] = i;
         else
@@ -136,7 +137,6 @@ main(int argc, char **argv)
     if(serial) {
         quicksort_serial(a, 0, n - 1);
     } else {
-        printf("sched init \n");
         rc = sched_init(nthreads, (n + 127) / 128,
                         quicksort, new_args(a, 0, n - 1));
         assert(rc >= 0);
@@ -146,15 +146,11 @@ main(int argc, char **argv)
     delay = end.tv_sec + end.tv_nsec / 1000000000.0 -
         (begin.tv_sec + begin.tv_nsec / 1000000000.0);
     printf("Done in %lf seconds.\n", delay);
-
-    for(int i = 0; i < n - 1; i++) {
-        printf("ai = %d\n",a[i]);
-        printf("ai = %d\n",a[i+1]);
-
+    i = 0;
+    for(i = 0; i < n - 1; i++) {
         assert(a[i] <= a[i + 1]);
     }
     printf("aborded \n");
-
     free(a);
     return 0;
 
