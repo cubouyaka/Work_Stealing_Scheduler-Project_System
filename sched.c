@@ -29,7 +29,7 @@ Element *depiler(struct Lifo * lifo){
 }
 
 void aux(void * s ){
-
+  printf("1");
   struct scheduler *scheduler=(struct  scheduler *)s;
 
   while(1){
@@ -57,6 +57,7 @@ void aux(void * s ){
     }
   }
 }
+
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   if(nthreads == -1) //nombre de threads est choisi par sched_default_threads
     nthreads = sched_default_threads();
@@ -79,7 +80,7 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   scheduler->lifo->taille = 0;
   scheduler->lifo->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 
-  //initialisation les threads qui dorment
+  //initialisation du nombre de threads qui dorment
   scheduler->nbre_th_sleep=0;
 
   //Empilement de la tache initiale sur la pile
@@ -92,21 +93,31 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   //la condition d'attente des threeads
   scheduler->cond= (pthread_cond_t)PTHREAD_COND_INITIALIZER;
 
-  int i;
-  int pth;
+  int i,t,b,pth;
   fprintf(stderr,"coeur %d \n",nthreads);
+  //Lancement des threads
   for (i = 0; i < scheduler->nthreads; i++){
-    pth = pthread_create (&scheduler->threads[i], NULL,(void* )aux,
-			  (void * )scheduler);
+    pth = pthread_create (&scheduler->threads[i], NULL,(void*)aux,
+			  (void*)scheduler);
     if (pth != 0)
       fprintf (stderr, "Error dans le thread n-%d [pthread_create]\n", i);
   }
 
-  pthread_mutex_lock (& scheduler->mutex);
   //retourner lorsque tous les thread sont endormi et la pile vide.
-  while((scheduler->lifo->taille != 0) || (scheduler->nbre_th_sleep != scheduler->nthreads))
-    usleep(15);
-  pthread_mutex_unlock (& scheduler->mutex);
+  do{
+    printf("C1\n");
+    usleep(50);
+    pthread_mutex_lock (& scheduler->lifo->mutex);
+    t = scheduler->lifo->taille;
+    pthread_mutex_unlock (& scheduler->lifo->mutex);
+    printf("C2\n");
+
+    printf("D1\n");
+    pthread_mutex_lock (& scheduler->mutex);
+    b = (scheduler->nbre_th_sleep != scheduler->nthreads);
+    pthread_mutex_unlock (& scheduler->mutex);
+    printf("D2\n");
+  }while((t != 0) || b);
 
   free(scheduler->lifo);
   free(scheduler->threads);
