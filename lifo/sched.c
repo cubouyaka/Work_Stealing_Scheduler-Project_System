@@ -4,7 +4,7 @@ void empiler(struct Lifo * lifo, taskfunc f, void * closure){
   struct Element * e = (Element *) malloc(sizeof(struct Element));
   
   pthread_mutex_lock (& lifo->mutex);
-  if (lifo == NULL || e == NULL)
+  if (lifo == NULL)
     exit(EXIT_FAILURE);
   e->t = f;
   e->closure = closure;
@@ -15,17 +15,12 @@ void empiler(struct Lifo * lifo, taskfunc f, void * closure){
 }
 
 Element *depiler(struct Lifo * lifo){
-
-
   if (lifo == NULL)
     exit(EXIT_FAILURE);
 
   Element * e = lifo->dernier; //l'element a retourner
-  
-  if((lifo->taille) <= 1)
-    lifo->dernier = NULL;
-  else
-    lifo->dernier = e->prec; //depiler l'element e
+
+  lifo->dernier = e->prec; //depiler l'element e
   lifo->taille --;
   
   return e;

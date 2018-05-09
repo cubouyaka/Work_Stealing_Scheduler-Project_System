@@ -1,6 +1,40 @@
-struct scheduler;
+#pragma once
+#ifndef SCHED_H
+#define SCHED_H
+
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+
+typedef struct MyThread {
+  pthread_t thread;
+  struct Deque * deque;
+} MyThread;
+
+typedef struct scheduler {
+  int nthreads; //nombre de threads
+  int qlen; //nombres minimum de taches simultanees
+  MyThread * mythreads;
+  pthread_mutex_t mutex;
+} scheduler;
 
 typedef void (*taskfunc)(void*, struct scheduler *);
+
+typedef struct Element {
+  taskfunc t;
+  void * closure;
+  struct Element * prec;
+  struct Element * suivant;
+} Element;
+
+typedef struct Deque {
+  int taille; //nombre d'elements dans la deque
+  Element * premier;
+  Element * dernier;
+  pthread_mutex_t mutex;
+} Deque;
+
 
 static inline int
 sched_default_threads()
@@ -10,3 +44,17 @@ sched_default_threads()
 
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure);
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s);
+
+
+//Enfile la taskfunc f en haut de la deque 
+void enfilerHaut(struct Deque * deque, taskfunc f, void *closure);
+//Defile la deque par en haut
+Element* defilerHaut(struct Deque * deque);
+
+//Enfile la taskfunc f en bas de la deque 
+void enfilerBas(struct Deque * deque, taskfunc f, void *closure);
+//Defile la deque par en bas
+Element* defilerBas(struct Deque * deque);
+
+
+#endif
