@@ -16,28 +16,30 @@ void empiler(struct Lifo * lifo, taskfunc f, void * closure){
 
 Element *depiler(struct Lifo * lifo){
 
-  pthread_mutex_lock (& lifo->mutex);
+
   if (lifo == NULL)
     exit(EXIT_FAILURE);
 
   Element * e = lifo->dernier; //l'element a retourner
-  lifo->dernier = e->prec; //depiler l'element e
+  
+  if((lifo->taille) <= 1)
+    lifo->dernier = NULL;
+  else
+    lifo->dernier = e->prec; //depiler l'element e
   lifo->taille --;
-  pthread_mutex_unlock(& lifo->mutex);
-
+  
   return e;
 }
 
 void aux(void * s ){
-  printf("1");
   struct scheduler *scheduler=(struct  scheduler *)s;
 
   while(1){
     pthread_mutex_lock (& scheduler->lifo->mutex);
     int t = (scheduler->lifo->taille);
-    pthread_mutex_unlock (& scheduler->lifo->mutex);
     if(t == 0){ //pile vide
-
+    pthread_mutex_unlock (& scheduler->lifo->mutex);
+     
       //incrementer le nombre de thread qui dorment
       pthread_mutex_lock (& scheduler->mutex_sleep);
       scheduler->nbre_th_sleep++;
@@ -52,8 +54,11 @@ void aux(void * s ){
       pthread_mutex_unlock (& scheduler->mutex_sleep);
 
     }else{ //il y a au moins une tache dans la pile d'execution
+      //pthread_mutex_lock (& scheduler->lifo->mutex);
       struct Element * e = depiler(scheduler->lifo);
-      e->t(e->closure, scheduler); //execute la tache depiler
+    pthread_mutex_unlock (& scheduler->lifo->mutex);
+      //pthread_mutex_unlock(& scheduler->lifo->mutex);
+      e->t(e->closure, scheduler); //execute la tache depiler   
     }
   }
 }
@@ -105,18 +110,14 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
 
   //retourner lorsque tous les thread sont endormi et la pile vide.
   do{
-    printf("C1\n");
     usleep(50);
     pthread_mutex_lock (& scheduler->lifo->mutex);
     t = scheduler->lifo->taille;
     pthread_mutex_unlock (& scheduler->lifo->mutex);
-    printf("C2\n");
 
-    printf("D1\n");
     pthread_mutex_lock (& scheduler->mutex);
     b = (scheduler->nbre_th_sleep != scheduler->nthreads);
     pthread_mutex_unlock (& scheduler->mutex);
-    printf("D2\n");
   }while((t != 0) || b);
 
   free(scheduler->lifo);
@@ -128,9 +129,9 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s){
 
   //Si le nombre de tâches en file est supérieur ou égal à la capacité de l’ordonnanceur
-    pthread_mutex_lock (& s->lifo->mutex);
-    int t = (s->lifo->taille);
-    pthread_mutex_unlock (& s->lifo->mutex);
+  pthread_mutex_lock (& s->lifo->mutex);
+  int t = (s->lifo->taille);
+  pthread_mutex_unlock (& s->lifo->mutex);
   if(t >= s->qlen){
     errno = EAGAIN;
     return -1;
@@ -140,5 +141,6 @@ int sched_spawn(taskfunc f, void *closure, struct scheduler *s){
 
   //signal à faire pour reveiller les threads qui dorment
   pthread_cond_signal (& s->cond);
+      
   return 0;
 }
