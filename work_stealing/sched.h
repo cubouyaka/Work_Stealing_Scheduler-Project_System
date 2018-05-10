@@ -3,6 +3,7 @@
 #define SCHED_H
 
 #include <unistd.h>
+#include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -10,6 +11,7 @@
 typedef struct MyThread {
   pthread_t thread;
   struct Deque * deque;
+  int id;
 } MyThread;
 
 typedef struct scheduler {
@@ -17,7 +19,13 @@ typedef struct scheduler {
   int qlen; //nombres minimum de taches simultanees
   MyThread * mythreads;
   pthread_mutex_t mutex;
+  int nthreads_sleep; //le nombre de threads endormis
 } scheduler;
+
+typedef struct arg{
+  struct scheduler* scheduler;
+  int id;
+} arg;
 
 typedef void (*taskfunc)(void*, struct scheduler *);
 
@@ -37,14 +45,16 @@ typedef struct Deque {
 
 
 static inline int
-sched_default_threads()
-{
-    return sysconf(_SC_NPROCESSORS_ONLN);
-}
+sched_default_threads(){ return sysconf(_SC_NPROCESSORS_ONLN); }
 
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure);
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s);
 
+//Etape de Work Stealing : retourne 0 si echoue, 1 sinon
+int workStealing(struct scheduler * s, int id);
+
+//Retourne l'id du thread courant dans le tableau mythreads
+int idMythread(struct scheduler * s);
 
 //Enfile la taskfunc f en haut de la deque 
 void enfilerHaut(struct Deque * deque, taskfunc f, void *closure);

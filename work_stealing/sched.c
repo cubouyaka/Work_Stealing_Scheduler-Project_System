@@ -26,6 +26,8 @@ Element* defilerHaut(struct Deque * deque){
 
   Element * e = deque->premier; //l'element a retourner
 
+  pthread_mutex_lock (& deque->mutex);
+
   if(deque->taille == 1){ //si c'est le seul dans la deque
     deque->dernier = NULL;
     deque->premier = NULL;
@@ -35,6 +37,8 @@ Element* defilerHaut(struct Deque * deque){
   }
   deque->taille --;
   
+  pthread_mutex_unlock (& deque->mutex);
+
   return e;
 
 }
@@ -65,6 +69,8 @@ Element* defilerBas(struct Deque * deque){
 
   Element * e = deque->dernier; //l'element a retourner
 
+  pthread_mutex_lock (& deque->mutex);
+ 
   if(deque->taille == 1){ //si c'est le seul dans la deque
     deque->dernier = NULL;
     deque->premier = NULL;
@@ -74,12 +80,42 @@ Element* defilerBas(struct Deque * deque){
   }
   deque->taille --;
   
+  pthread_mutex_unlock (& deque->mutex);
+
   return e;
+}
+
+void aux(void * arg){
+  struct arg *args = (struct  arg *)arg;
+  int ws = 0;
+  while(1){
+    if(args->scheduler->mythreads[args->id].deque->taille == 0){ //deque vide
+      while(ws == 0){//tant que le work stealing echoue (ie return 0)
+	ws = workStealing(args->scheduler,args->id);
+	if(ws == 0)
+	  usleep(1000); //dors 1ms avant de recommencer une etape de WS
+      }	
+    }else{ //sinon : la deque n'est pas vide
+      pthread_mutex_lock (& args->scheduler->mythreads[args->id].deque->mutex);
+      Element * e = defilerBas(args->scheduler->mythreads[args->id].deque);
+      pthread_mutex_unlock (& args->scheduler->mythreads[args->id].deque->mutex);
+
+      pthread_mutex_lock(& args->scheduler->mutex);
+      args->scheduler->nthreads_sleep --;
+      pthread_mutex_unlock(& args->scheduler->mutex);
+
+      e->t(e->closure, args->scheduler); //execute la tache depiler
+
+      pthread_mutex_lock(& args->scheduler->mutex);
+      args->scheduler->nthreads_sleep ++;
+      pthread_mutex_unlock(& args->scheduler->mutex);
+    }
+  }
 }
 
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
 
-  int p;
+  int i,t,pth;
 
   if(nthreads == -1) //nombre de threads est choisi par sched_default_threads
     nthreads = sched_default_threads();
@@ -92,6 +128,7 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   }
   scheduler->nthreads = nthreads;
   scheduler->qlen = qlen;
+  scheduler->nthreads_sleep = nthreads;
 
   //Allocation de memoire pour les threads
   scheduler->mythreads = (struct MyThread *)
@@ -101,71 +138,100 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
   scheduler->mutex = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 
   //initialisation des deques
-  for (p = 0; p < scheduler->nthreads; p++){
-    scheduler->mythreads[p].deque=(struct Deque *)malloc(sizeof(struct Deque));
-    scheduler->mythreads[p].deque->premier = NULL;
-    scheduler->mythreads[p].deque->dernier = NULL;
-    scheduler->mythreads[p].deque->taille = 0;
-    scheduler->mythreads[p].deque->mutex = 
+  for (i = 0; i < scheduler->nthreads; i++){
+    scheduler->mythreads[i].deque=(struct Deque *)malloc(sizeof(struct Deque));
+    scheduler->mythreads[i].deque->premier = NULL;
+    scheduler->mythreads[i].deque->dernier = NULL;
+    scheduler->mythreads[i].deque->taille = 0;
+    scheduler->mythreads[i].deque->mutex = 
       (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+    scheduler->mythreads[i].id = i;
   }
 
   //Enfilement de la tache initiale dans la deque du premier thread
   enfilerHaut(scheduler->mythreads[0].deque,f,closure);
 
-  /* A CONTINUER ICI
-
-  int i,t,b,pth;
   fprintf(stderr,"coeur %d \n",nthreads);
+
   //Lancement des threads
   for (i = 0; i < scheduler->nthreads; i++){
-    pth = pthread_create (&scheduler->threads[i], NULL,(void*)aux,
-			  (void*)scheduler);
+    struct arg * args = (struct arg*)malloc(sizeof(struct arg));
+    args->scheduler = scheduler;
+    args->id = i;
+    pth = pthread_create (&scheduler->mythreads[i].thread, NULL,(void*)aux,
+			  (void*)args);
     if (pth != 0)
       fprintf (stderr, "Error dans le thread n-%d [pthread_create]\n", i);
   }
 
-  //retourner lorsque tous les thread sont endormi et la pile vide.
   do{
-    usleep(50);
-    pthread_mutex_lock (& scheduler->lifo->mutex);
-    t = scheduler->lifo->taille;
-    pthread_mutex_unlock (& scheduler->lifo->mutex);
-
     pthread_mutex_lock (& scheduler->mutex);
-    b = (scheduler->nbre_th_sleep != scheduler->nthreads);
+    t = scheduler->nthreads - scheduler->nthreads_sleep;
     pthread_mutex_unlock (& scheduler->mutex);
-  }while((t != 0) || b);
+  }while(t != 0); //ie tant qu'il y a des threads reveilles
 
-  free(scheduler->lifo);
-  free(scheduler->threads);
+  //Liberation de la memoire
+  for(i = 0; i < scheduler->nthreads; i++)
+    free(scheduler->mythreads[i].deque);
+  free(scheduler->mythreads);
   free(scheduler);
-
-  */
 
   return 1;
 }
 
 int sched_spawn(taskfunc f, void *closure, struct scheduler *s){
 
-  /*
-
-  //Si le nombre de tâches en file est supérieur ou égal à la capacité de l’ordonnanceur
-  pthread_mutex_lock (& s->lifo->mutex);
-  int t = (s->lifo->taille);
-  pthread_mutex_unlock (& s->lifo->mutex);
-  if(t >= s->qlen){
-  errno = EAGAIN;
-  return -1;
-  }
-  // empiler la nouvelle tache
-  empiler(s->lifo,f,closure);
-
-  //signal à faire pour reveiller les threads qui dorment
-  pthread_cond_signal (& s->cond);
-      
-
-  */
+  int id = idMythread(s);
+  if(id == -1)
+    return -1; //erreur
+  
+  //enfilement de la tache dans la deque adequate
+  pthread_mutex_lock(& s->mythreads[id].deque->mutex);
+  enfilerBas(s->mythreads[id].deque,f,closure);
+  pthread_mutex_unlock(& s->mythreads[id].deque->mutex);
 
   return 0;
+}
+
+int idMythread(struct scheduler * s){
+  int i;
+  pthread_t thread = pthread_self();
+  for(i = 0; i < s->nthreads; i++)
+    if(s->mythreads[i].thread == thread)
+      return i;
+  return -1; //si il n'a pas trouver (ne devrait jamais arriver)
+}
+
+int workStealing(struct scheduler * s, int id){
+
+  int r,i,r_i;
+  Element * e;
+
+  srand(time(NULL));
+  while(r == id)
+    r = rand() % s->nthreads;
+  
+  pthread_mutex_lock(& s->mythreads[r].deque->mutex);
+
+  if(s->mythreads[r].deque->taille != 0){
+    e = defilerHaut(s->mythreads[r].deque);
+    e->t(e->closure, s); //execute la tache
+    pthread_mutex_unlock(& s->mythreads[r].deque->mutex);
+    return 1;
+  }
+  pthread_mutex_lock(& s->mythreads[r].deque->mutex);
+  
+  for(i = 1; i < s->nthreads; i++){
+    r_i = (r+i)%s->nthreads;
+    pthread_mutex_lock(& s->mythreads[r_i].deque->mutex);
+    if(s->mythreads[r_i].deque->taille != 0){
+      e = defilerHaut(s->mythreads[r_i].deque);
+      e->t(e->closure, s); //execute la tache      
+      pthread_mutex_unlock(& s->mythreads[r_i].deque->mutex);
+      return 1;
+    }
+    pthread_mutex_unlock(& s->mythreads[r_i].deque->mutex);
+  }
+
+  return 0; //echoue
 }
