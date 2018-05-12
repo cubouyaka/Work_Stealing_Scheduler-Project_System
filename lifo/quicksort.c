@@ -97,7 +97,7 @@ main(int argc, char **argv)
     double delay;
     int rc;
     int n = 10 * 1024 * 1024;
-    int nthreads = -1;
+    int nthreads = 2;
     int serial = 0;
 
     while(1) {

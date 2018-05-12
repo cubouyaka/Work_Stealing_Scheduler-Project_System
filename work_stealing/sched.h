@@ -13,6 +13,9 @@ typedef struct MyThread {
   struct Deque * deque;
   int id;
   int sleep; //0 if false 1 else
+  int nb_t_eff; //nombre de taches effectuees
+  int ws_success; //nombre d'etapes de work stealing reussies
+  int ws_fail; //nombre d'etapes de work stealing echouees
 } MyThread;
 
 typedef struct scheduler {
@@ -69,6 +72,9 @@ Element* defilerHaut(struct Deque * deque);
 void enfilerBas(struct Deque * deque, taskfunc f, void *closure);
 //Defile la deque par en bas
 Element* defilerBas(struct Deque * deque);
+
+//Affiche les stats par threads
+void stats(struct scheduler * s);
 
 
 #endif

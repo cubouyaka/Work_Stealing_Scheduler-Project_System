@@ -49,10 +49,8 @@ void aux(void * s ){
       pthread_mutex_unlock (& scheduler->mutex_sleep);
 
     }else{ //il y a au moins une tache dans la pile d'execution
-      //pthread_mutex_lock (& scheduler->lifo->mutex);
       struct Element * e = depiler(scheduler->lifo);
-    pthread_mutex_unlock (& scheduler->lifo->mutex);
-      //pthread_mutex_unlock(& scheduler->lifo->mutex);
+      pthread_mutex_unlock (& scheduler->lifo->mutex);
       e->t(e->closure, scheduler); //execute la tache depiler   
     }
   }
