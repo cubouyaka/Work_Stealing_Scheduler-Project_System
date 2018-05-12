@@ -194,7 +194,7 @@ void aux(void * arg){
 }
 
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
-  int i,t,pth;
+  int i,pth;
 
   srand(time(0));
 
