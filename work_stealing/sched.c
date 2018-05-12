@@ -10,7 +10,22 @@ void enfilerHaut(struct Deque * deque, taskfunc f, void *closure){
 
   e->t = f;
   e->closure = closure;
-  e->prec = deque->dernier;
+  e->prec = NULL;
+
+  if(deque->taille != 0){
+    deque->premier->prec = e;
+    e->suivant = deque->premier;
+    deque->premier = e;
+  }else{
+    e->suivant = NULL;
+    deque->premier = e;
+    deque->dernier = e;
+  }
+  deque->taille ++;
+  
+  /*
+  //e->prec = deque->dernier;
+  e->prec = NULL;
   e->suivant = deque->premier;
   deque->premier = e;
   if(deque->taille == 0){ //si la deque etait vide avant
@@ -19,28 +34,44 @@ void enfilerHaut(struct Deque * deque, taskfunc f, void *closure){
     e->prec = e;
   }
   deque->taille ++;
+  */
   pthread_mutex_unlock (& deque->mutex);
 }
 
 //Defile la deque par en haut
 Element* defilerHaut(struct Deque * deque){
-  pthread_mutex_lock (& deque->mutex);
+  //pthread_mutex_lock (& deque->mutex);
 
   if (deque == NULL)
     exit(EXIT_FAILURE);
 
   Element * e = deque->premier; //l'element a retourner
 
+  if(deque->taille == 1){
+    deque->premier = NULL;
+    deque->dernier = NULL;
+  }else{
+    //printf("%d\n",deque->taille);
+    //printf("%p ",deque->premier);
+    //printf("%p\n",deque->premier->suivant);
+    deque->premier = deque->premier->suivant;
+    deque->premier->prec = NULL;//
+  }
+  deque->taille --;
+
+  /*
   if(deque->taille == 1){ //si c'est le seul dans la deque
     deque->dernier = NULL;
     deque->premier = NULL;
   }else{
+    deque->premier->suivant = e;
     deque->premier = e->suivant;
-    deque->dernier->prec = deque->premier;
+    //deque->dernier->prec = deque->premier;
+    deque->dernier->prec = NULL;
   }
   deque->taille --;
-  
-  pthread_mutex_unlock (& deque->mutex);
+  */
+  //pthread_mutex_unlock (& deque->mutex);
 
   return e;
 
@@ -56,15 +87,34 @@ void enfilerBas(struct Deque * deque, taskfunc f, void *closure){
 
   e->t = f;
   e->closure = closure;
-  e->prec = deque->dernier;
-  e->suivant = deque->premier;
-  deque->dernier = e;
+  e->suivant = NULL;
+
+  if(deque->taille != 0){
+    deque->dernier->suivant = e;
+    e->prec = deque->dernier;
+    e->suivant = NULL;
+    deque->dernier = e;
+  }else{
+    e->prec = NULL;
+    deque->premier = e;
+    deque->dernier = e;
+  }
+  deque->taille++;
+  /*
+ e->prec = deque->dernier;
+  e->suivant = NULL;
+  //e->suivant = deque->premier;
   if(deque->taille == 0){ //si la deque etait vide avant
     deque->premier = e;
     e->suivant = e;
     e->prec = e;
+  }else{
+    deque->premier->prec = e;
+    deque->dernier->suivant = e;
   }
+  deque->dernier = e;
   deque->taille ++;
+  */
   pthread_mutex_unlock (& deque->mutex);
 }
 
@@ -75,17 +125,30 @@ Element* defilerBas(struct Deque * deque){
   if (deque == NULL)
     exit(EXIT_FAILURE);
 
+  Element * e = (Element*)malloc(sizeof(struct Element));
+
+  if(deque->taille == 1){
+    e = deque->premier;
+    deque->premier = NULL;
+    deque->dernier = NULL;
+  }else{
+    e = deque->dernier;
+    deque->dernier = deque->dernier->prec;
+    deque->dernier->suivant = NULL;//
+  }
+  deque->taille --;
+  /*
   Element * e = deque->dernier; //l'element a retourner
  
   if(deque->taille == 1){ //si c'est le seul dans la deque
     deque->dernier = NULL;
     deque->premier = NULL;
   }else{
-    deque->dernier = e->prec;
-    deque->dernier->suivant = deque->premier;
+    deque->dernier = deque->dernier->prec;
+    //deque->dernier->suivant = deque->premier;
   }
   deque->taille --;
-  
+  */
   pthread_mutex_unlock (& deque->mutex);
 
   return e;
@@ -94,15 +157,22 @@ Element* defilerBas(struct Deque * deque){
 void aux(void * arg){
   
   struct arg *args = (struct  arg *)arg;
-  int ws = 0;
+  int id = idMythread(args->scheduler);
 
   while(1){
-    if(args->scheduler->mythreads[args->id].deque->taille == 0){ //deque vide
-      
+    int ws = 0;
+    
+    pthread_mutex_lock(& args->scheduler->mythreads[args->id].deque->mutex);
+    int t = args->scheduler->mythreads[args->id].deque->taille;
+    pthread_mutex_unlock(& args->scheduler->mythreads[args->id].deque->mutex);
+    if(t == 0){ //deque vide
+      /*
       pthread_mutex_lock(& args->scheduler->mutex);
       args->scheduler->nthreads_sleep ++;
+      printf("AUX - %d\n",args->scheduler->nthreads_sleep);
       pthread_mutex_unlock(& args->scheduler->mutex);
-
+      */
+      args->scheduler->mythreads[id].sleep = 1;
       while(ws == 0){//tant que le work stealing echoue (ie return 0)
 	ws = workStealing(args->scheduler,args->id);
 	if(ws == 0)
@@ -114,10 +184,10 @@ void aux(void * arg){
       Element * e = defilerBas(args->scheduler->mythreads[args->id].deque);
       //pthread_mutex_unlock (& args->scheduler->mythreads[args->id].deque->mutex);
 
-      pthread_mutex_lock(& args->scheduler->mutex);
+      /*pthread_mutex_lock(& args->scheduler->mutex);
       args->scheduler->nthreads_sleep --;
       pthread_mutex_unlock(& args->scheduler->mutex);
-
+      */
       e->t(e->closure, args->scheduler); //execute la tache depiler
     }
   }
@@ -157,6 +227,7 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
     scheduler->mythreads[i].deque->mutex = 
       (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
     scheduler->mythreads[i].id = i;
+    scheduler->mythreads[i].sleep = 0;
   }
 
   //Enfilement de la tache initiale dans la deque du premier thread
@@ -177,19 +248,25 @@ int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
     if (pth != 0)
       fprintf (stderr, "Error dans le thread n-%d [pthread_create]\n", i);
   }
-
+  /*
   do{
     pthread_mutex_lock (& scheduler->mutex);
     t = scheduler->nthreads - scheduler->nthreads_sleep;
     pthread_mutex_unlock (& scheduler->mutex);
-    usleep(50);
+    usleep(1000);
   }while(t != 0); //ie tant qu'il y a des threads reveilles
+*/
+  while(allSleep(scheduler) == 0){
+    usleep(10);
+  }
 
+  /*
   //Liberation de la memoire
   for(i = 0; i < scheduler->nthreads; i++)
     free(scheduler->mythreads[i].deque);
   free(scheduler->mythreads);
   free(scheduler);
+*/
 
   return 1;
 }
@@ -219,33 +296,43 @@ int idMythread(struct scheduler * s){
 
 int workStealing(struct scheduler * s, int id){
 
-  int r,i,r_i;
+  int r,i,r_i,t;
   Element * e;
 
   do{
     r = (rand()%s->nthreads);
   }while(r == id);
 
-  //pthread_mutex_lock(& s->mythreads[r].deque->mutex);
+  pthread_mutex_lock(& s->mythreads[r].deque->mutex);
+  t = s->mythreads[r].deque->taille;
+  //pthread_mutex_unlock(& s->mythreads[r].deque->mutex);
+  //printf("WS - R - %d\n",r);
 
-  if(s->mythreads[r].deque->taille != 0){
-	
+  if(t != 0){
+    
+    /*
     pthread_mutex_lock(& s->mutex);
     s->nthreads_sleep --;
+    printf("WS - %d\n",s->nthreads_sleep);
     pthread_mutex_unlock(& s->mutex);
-	
+    */
+    s->mythreads[id].sleep = 0;
+    
     e = defilerHaut(s->mythreads[r].deque);
     e->t(e->closure, s); //execute la tache
-    //pthread_mutex_unlock(& s->mythreads[r].deque->mutex);
 
-    pthread_mutex_lock(& s->mutex);
-    s->nthreads_sleep ++;
-    pthread_mutex_unlock(& s->mutex);
-	
+    //printf("Tache excutee\n");
+    pthread_mutex_unlock(& s->mythreads[r].deque->mutex);
+
+    //pthread_mutex_lock(& s->mutex);
+    //s->nthreads_sleep ++;
+    //pthread_mutex_unlock(& s->mutex);
+    	
     return 1;
   }
 
-  //pthread_mutex_unlock(& s->mythreads[r].deque->mutex);
+
+  pthread_mutex_unlock(& s->mythreads[r].deque->mutex);
 
   for(i = 1; i < s->nthreads; i++){
     r_i = (r+i)%s->nthreads;
@@ -253,6 +340,8 @@ int workStealing(struct scheduler * s, int id){
     int t = s->mythreads[r_i].deque->taille;
     pthread_mutex_unlock(& s->mythreads[r_i].deque->mutex);
     if(t != 0){
+
+      s->mythreads[id].sleep = 0;
 
       e = defilerHaut(s->mythreads[r_i].deque);
       e->t(e->closure, s); //execute la tache 
@@ -263,5 +352,15 @@ int workStealing(struct scheduler * s, int id){
     //pthread_mutex_unlock(& s->mythreads[r_i].deque->mutex);
   }
 
+
+
   return 0; //echoue
+}
+
+int allSleep(struct scheduler * s){
+  int i;
+  for(i = 0; i < s->nthreads; i++)
+    if(s->mythreads[i].sleep == 0)
+      return 0;
+  return 1;
 }

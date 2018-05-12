@@ -12,6 +12,7 @@ typedef struct MyThread {
   pthread_t thread;
   struct Deque * deque;
   int id;
+  int sleep; //0 if false 1 else
 } MyThread;
 
 typedef struct scheduler {
@@ -55,6 +56,9 @@ int workStealing(struct scheduler * s, int id);
 
 //Retourne l'id du thread courant dans le tableau mythreads
 int idMythread(struct scheduler * s);
+
+//1 si tout les threads sont endormis, 0 sinon
+int allSleep(struct scheduler * s);
 
 //Enfile la taskfunc f en haut de la deque 
 void enfilerHaut(struct Deque * deque, taskfunc f, void *closure);
